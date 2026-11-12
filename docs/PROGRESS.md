@@ -110,12 +110,27 @@ Decisions:
 - Residual false STOPs: 1-2 in 30 in S-05, S-11, S-12 and S-13.
 - Most thresholds were tuned in the same synthetic world they are tested in. This is the main threat to validity.
 
+## 2026-11-12: P5 Evaluation and hardening (done)
+
+- `docs/safety-case.md` written, then revised to version 2 after review.
+- **Adversarial review** by a fresh agent with no access to the author's reasoning: `docs/review/adversarial-review.md`. 20 findings: 4 critical, 7 high. All confirmed by the reviewer's own probes.
+- **Response:** `docs/review/response.md` and ADR 0007.
+  - Fixed in code: findings 1, 5, 8, 9.
+  - Partly fixed, with residuals stated: 2, 3, 10, 11, 14, 16.
+  - Reworded or re-measured: 4, 6, 7, 13.
+  - Open: finding 12 (the perception stand-in is given ground truth) and parts of 15, 17, 18, 20.
+- New: `ReviewRegressionTest` (13 tests on seeds 31-130), `Survey.kt` and `docs/results/scenario_rates.md` (300 seeds, intervals). 85 tests pass.
+- **Headline numbers changed** (all L1):
+  - Baseline comparison is not like-for-like. Matched threshold: 1.30% false alarms / 11.33% misses with pitch given; 2.29% / 19.60% without. Deployed: 15.9-27.0% false alarms.
+  - Typical walker: contact 0/300 for six still obstacles, also at 5 and 7 fps, with +0.4 s delay, and in low light.
+  - Conservative walker, default setting: contact 9-12% (33% for the head-height branch).
+  - False STOPs: 9.7% parked car beside path, 13.0% pedestrian ahead, 12.0% head turns. CAUTION in 78% of runs for a distant wall.
+- Gates: G3 moved to `needs_hardware`. Requirements 02, 07, 08 are "not met" (`docs/results/requirements_status.md`).
+- Test changes this round, all logged in `docs/review/response.md`: 30-seed false-STOP gates replaced by 100-seed rate bounds; cloud tests T4 and T7 follow the new guard rules; the simulated walker gained 0.15 s recognition time.
+
 ## Next
-1. **P5:**
-   - Evaluation hardening.
-   - Adversarial review by a fresh subagent with no access to this reasoning. It attacks the hazard analysis and every claim; fix or list each finding.
-   - Write `docs/safety-case.md`, consolidated from `docs/research/02`.
-2. **P6:**
+1. **P6:**
    - Final report.
-   - Hardware-validation checklist (H-1 to H-n), including Android adapters against DAT 1.0.1 and real latency measurements.
+   - Hardware-validation checklist (H-1 to H-n): Android adapters against DAT 1.0.1, real latency, pitch and range error, clock offset.
    - Set G9 and G10.
+2. Open design problem: false-STOP rate (safety case C4).

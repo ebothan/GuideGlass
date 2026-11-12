@@ -207,7 +207,9 @@ class Navigator(val route: Route, private val cfg: NavConfig = NavConfig()) {
             step == null -> Cue(CueKind.ARRIVAL, Priority.P2, "Arriving.", Earcon.ARRIVE, "nav-now-$idx", t, 1.5)
             crossing -> null
             else -> maneuverWords(step.maneuver)?.let { w ->
-                Cue(CueKind.TURN_NOW, Priority.P2, if (hedge) "$w soon." else "$w now.", Earcon.TURN, "nav-now-$idx", t, 1.5)
+                // Never "now": GNSS error near a corner is as large as the lead distance (review finding 10). The cue
+                // names the next corner and leaves finding it to the user's cane or dog.
+                Cue(CueKind.TURN_NOW, Priority.P2, if (hedge) "$w soon." else "$w at the next corner.", Earcon.TURN, "nav-now-$idx", t, 1.5)
             }
         }
         val leadNow = cfg.speechLatencyS + (nowCue?.durationS ?: 0.9) + cfg.reactS

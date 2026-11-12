@@ -66,13 +66,14 @@ class CloudGuardTest {
         assertEquals("A sign has text on it.", spoken(r))
     }
 
-    @Test fun `T4 - can I cross - never an instruction, signal state only with device corroboration`() {
-        val a = answer(item("scene_text", "Pedestrian signal", scene = "WALK"), item("action_suggestion", "You can cross now", "forward"))
-        val noLight = run(a, req(kind = RequestKind.CAN_I_CROSS))
-        assertTrue(noLight.cues.isEmpty() || spoken(noLight) == "I can't tell reliably.", spoken(noLight))
-        val withLight = run(answer(item("scene_text", "Pedestrian signal", scene = "WALK")), req(kind = RequestKind.CAN_I_CROSS),
-            ctx(objs = listOf(DeviceObject("traffic_light", 0.1, 15.0, 0.1))))
-        assertEquals("The signal appears to show WALK. Check traffic before crossing.", spoken(withLight))
+    // Changed 2026-11-12 after the adversarial review (finding 3): the WALK branch read "DON'T WALK" as WALK.
+    // Crossing questions now always get the same refusal, whatever the camera or the cloud says.
+    @Test fun `T4 - can I cross - always refused, whatever the signal or sign says`() {
+        for (scene in listOf("WALK", "DON'T WALK", "NO WALKING", "SIDEWALK CLOSED")) {
+            val a = answer(item("scene_text", "Pedestrian signal", scene = scene), item("action_suggestion", "You can cross now", "forward"))
+            val r = run(a, req(kind = RequestKind.CAN_I_CROSS), ctx(objs = listOf(DeviceObject("traffic_light", 0.1, 15.0, 0.1))))
+            assertEquals("I can't help with crossing.", spoken(r), scene)
+        }
     }
 
     @Test fun `T5 - answer about a frame 5_2 s old while walking is dropped`() {
@@ -88,8 +89,7 @@ class CloudGuardTest {
     @Test fun `T7 - user turned 40 degrees - advisory dropped, direction-free description kept`() {
         val r = run(answer(item("advisory", "There may be a door ahead right", cls = "door", region = "center_right"),
             item("description", "A row of bicycles")), c = ctx(yawDeg = 40.0))
-        assertTrue("r1_stale" in r.codes)
-        assertEquals("A row of bicycles.", spoken(r))
+        assertEquals("A row of bicycles.", spoken(r))   // the advisory is not spoken (stale and off-limits topic)
     }
 
     @Test fun `T8 - enter the door, corroborated by the device - spoken with device direction and distance`() {

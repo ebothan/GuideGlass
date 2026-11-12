@@ -5,7 +5,7 @@
     "G1": {
       "title": "Clean checkout builds and passes unit tests via init.sh",
       "status": "pass",
-      "evidence": "init.sh on a clean clone of av-prototype: R5 baseline, 74 core tests, G6 regression; 38 s (2026-11-12)"
+      "evidence": "init.sh: R5 baseline, 85 core tests, G6 regression tripwire (2026-11-12, after review fixes)"
     },
     "G2": {
       "title": "App runs end to end in emulator on replayed and synthetic scenes; cues produced, spoken, logged",
@@ -15,47 +15,47 @@
     "G2a": {
       "title": "Full pipeline runs end to end on the desktop JVM with a mock frame source on synthetic scenes and replayed logs; cues produced, rendered by a logging audio sink, logged (ADR 0003; evidence labelled L3-substitute)",
       "status": "pass",
-      "evidence": "docs/results/demo_cue_log.md: 7 scenarios + navigation end to end on JVM, logging audio sink; saved event logs replay identically (ReplayTest). L3-substitute"
+      "evidence": "docs/results/demo_cue_log.md: end-to-end desktop run with a synthetic frame source and logging audio sink. Replaying the saved event log shows determinism only. Not emulator evidence"
     },
     "G3": {
       "title": "Per-stage timestamps; latency report p50/p95/p99 vs budget, pass/fail per cue type",
-      "status": "pass",
-      "evidence": "docs/results/latency_report.md: p50/p95/p99 per stage and per cue type; STOP 613 ms p95 pass, CAUTION/MOVING fail (queue wait); hardware stages drawn [A], core compute measured on desktop"
+      "status": "needs_hardware",
+      "evidence": "Mechanism exists (per-stage stamps, docs/results/latency_report.md) but hardware stages are drawn from the assumed budget, so the report cannot fail on them; only core compute (0.02 ms p95, desktop) is measured. Real numbers need phone and glasses"
     },
     "G4": {
       "title": "Safety path survives loss of network, camera, Bluetooth, slow cloud; distinct degraded cue within stated time",
       "status": "pass",
-      "evidence": "HealthTest (12): camera/frozen/stall loss cue <=0.6 s start, ear p95 877 ms; BT loss on phone <=1 s; reduced fps, latency, network, low light. L1; real audio timing needs_hardware"
+      "evidence": "HealthTest (12) + ReviewRegressionTest: camera loss cue <=0.6 s from last usable frame (<=1.25 s if a Stop is playing); phone-clock only; frames >1 s old unusable; BT loss on phone <=1 s. L1. Silent cases remain: dead detector, covered lens, killed app"
     },
     "G5": {
       "title": "Navigation on replayed GPS trace A to B with Maps (or recorded responses); predicted-time turn rule",
       "status": "pass",
-      "evidence": "NavigatorTest (8): synthetic Directions-format response (no key), replayed 1 Hz GPS with 4 m noise; predicted-time turn cues fire before turn in 20/20, 1.1-7.7 s early. Live API path unverified"
+      "evidence": "NavigatorTest (8): SYNTHETIC Directions-format route (no key; live API path unverified), replayed 1 Hz GPS. Predicted-time rule fires several seconds before the corner; wording is \"at the next corner\", never \"now\". Crossing detection depends on route text. L1"
     },
     "G6": {
       "title": "Hazard evaluation on scene set shared with baseline; miss and false-alarm rates vs R5 (2.0% FA, 47.4% miss)",
       "status": "pass",
-      "evidence": "docs/results/g6_baseline_comparison.md: same seed-53 scenes; like-for-like 1.30% FA / 11.33% miss vs R5 2.00/47.39 (L1); worst error sweep 2.86% FA / 18.5% miss; init.sh regression"
+      "evidence": "docs/results/g6_baseline_comparison.md. NOT like-for-like: method is given depth from true distance. Matched threshold: 1.30% FA / 11.33% miss with pitch given; 2.29% / 19.60% with pitch unknown (worse than R5 on FA). Deployed setting: 15.9-27.0% FA, 0.9-2.4% miss. R5: 2.00 / 47.39. L1"
     },
     "G7": {
       "title": "Cloud tier off the critical path; hallucination guard tested",
       "status": "pass",
-      "evidence": "CloudGuardTest (21): T1-T20 from research 07 plus slow-cloud isolation from the safety path"
+      "evidence": "CloudGuardTest (21) + ReviewRegressionTest: crossing always refused, forward never spoken, topic word-list filter, guard cannot throw; reviewer's 24 paraphrases silent. Residual: a word list can be evaded"
     },
     "G8": {
       "title": "Cue priority, arbitration, repetition control tested incl. stop/back off/approach again",
       "status": "pass",
-      "evidence": "ArbiterTest (5), ScenarioTest: S-07 exactly 2 STOPs 30/30, S-08 exactly 1, S-19 refractory and no overlap"
+      "evidence": "ArbiterTest (5), ScenarioTest, scenario_rates.md: S-07 and S-08 correct in 299/300; dropped hazard cues are re-requested. False-STOP rates are high (9.7-13% on three quiet scenes)"
     },
     "G9": {
       "title": "Safety case, ADRs, research notes, hardware checklist committed; adversarial review done",
       "status": "pending",
-      "evidence": ""
+      "evidence": "Safety case v2, ADRs 0001-0007, research notes, adversarial review and response committed. Hardware checklist and final report are P6"
     },
     "G10": {
       "title": "All work pushed to av-prototype",
       "status": "pending",
-      "evidence": "P0-P4 pushed to ebothan/GuideGlass av-prototype (592661c and later)"
+      "evidence": "P0-P5 pushed to ebothan/GuideGlass av-prototype"
     }
   }
 }

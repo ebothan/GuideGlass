@@ -24,3 +24,4 @@ fun tool(name: String, main: String) = tasks.register<JavaExec>(name) {
 }
 tool("runDemo", "org.guideglass.core.sim.DemoKt")
 tool("runBaselineEval", "org.guideglass.core.sim.BaselineEvalKt")
+tool("runSurvey", "org.guideglass.core.sim.SurveyKt")

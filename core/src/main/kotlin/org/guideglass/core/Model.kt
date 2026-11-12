@@ -99,6 +99,21 @@ data class CoreConfig(
     val stopLeadS: Double = 2.5,
     val cautionLeadS: Double = 4.0,
     val closeFloorM: Double = 1.2,
+    // Human model used to scale the STOP lead with walking speed (docs/00 section 8.1, typical column).
+    val recogniseS: Double = 0.15,
+    val reactS: Double = 0.5,
+    val stopDistanceM: Double = 0.7,
+    val stopMarginM: Double = 0.3,
+    val minLeadSpeedMS: Double = 0.5,
+    /** False fixes the STOP lead at [stopLeadS] (used only to match the baseline harness's 2.5 m definition). */
+    val scaleLeadWithSpeed: Boolean = true,
+    /** Movable classes: hold a still-object STOP this long after first sight, unless urgent [A]. */
+    val movableHoldS: Double = 0.7,
+    val movableUrgentS: Double = 0.4,
+    /** Standing this long and then walking re-arms all alerts [A]. */
+    val resumeAfterStandS: Double = 1.0,
+    /** A frame older than this at decision time is not used (treated as no frame) [A]. */
+    val maxUsableFrameAgeS: Double = 1.0,
     // Geometry (repo's walking path definition, kept for comparability).
     val corridorHalfWidthM: Double = 0.45,
     val corridorIncludesObjectWidth: Boolean = true,

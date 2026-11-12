@@ -109,7 +109,7 @@ class Runner(
                     stage("cue: capture->ear (" + (if (e.cue.earcon == Earcon.NONE) "speech" else "earcon") + ")", ear - cap)
                 }
                 if (sc.walkerReacts && e.cue.kind == org.guideglass.core.CueKind.STOP && stoppingFrom.isNaN()) {
-                    stoppingFrom = ear + sc.reactionS
+                    stoppingFrom = ear + 0.15 + sc.reactionS   // 0.15 s to recognise the earcon (docs/00 section 8.1)
                 }
             }
         }

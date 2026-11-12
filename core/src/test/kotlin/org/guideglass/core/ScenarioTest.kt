@@ -93,21 +93,18 @@ class ScenarioTest {
         assertTrue(margins.all { it >= 1.0 }, "min margin ${margins.minOrNull()}")
     }
 
-    @Test fun `objects beside the path, a distant wall and a crossing cyclist do not cause STOP`() {
-        // Changed 2026-11-12 from 0 to at most 1 in 30: the closing-speed bound that makes S-09 meet its margin
-        // in 30/30 runs costs one false STOP in 30 here (depth reading short pulls the car's edge into the path).
-        assertTrue(runAll { Scenarios.s05Beside(it) }.count { it.of(CueKind.STOP).isNotEmpty() } <= 1, "S-05")
-        assertEquals(0, runAll { Scenarios.s06FarWall(it) }.sumOf { it.of(CueKind.STOP).size }, "S-06")
-        // Measured 1/30 at writing time; gate at 2/30.
-        assertTrue(runAll { Scenarios.s11BikeCrossingClear(it) }.count { it.of(CueKind.STOP).isNotEmpty() } <= 2, "S-11")
-    }
+    // Rewritten 2026-11-12 after the adversarial review (finding 6). The earlier gates used seeds 1-30 and bounds
+    // read off that one window; they failed on most other windows. These use 100 seeds not used for tuning and
+    // bounds set at the upper 95% limit of the 300-seed rates in docs/results/scenario_rates.md. They are
+    // regression tripwires. The rates themselves are a known weakness, not an achievement.
+    private fun falseStopRuns(b: (Long) -> Scenario) = (31L..130L).count { runner.run(b(it)).of(CueKind.STOP).isNotEmpty() }
 
-    @Test fun `S-12 pedestrian ahead at the same pace - false STOP rate stays at or below the measured 2 in 30`() {
-        assertTrue(runAll { Scenarios.s12SameDirection(it) }.count { it.of(CueKind.STOP).isNotEmpty() } <= 2)
-    }
-
-    @Test fun `S-13 fast head turns past roadside objects - false STOP rate at or below the measured 1 in 30 (REQ-08)`() {
-        assertTrue(runAll { Scenarios.s13HeadSweep(it) }.count { it.of(CueKind.STOP).isNotEmpty() } <= 1)
+    @Test fun `false STOP rates on quiet scenes stay within the reported bounds (REQ-08, review finding 6)`() {
+        val s05 = falseStopRuns { Scenarios.s05Beside(it) }; assertTrue(s05 <= 14, "S-05 parked car beside path: $s05/100")
+        val s06 = falseStopRuns { Scenarios.s06FarWall(it) }; assertTrue(s06 <= 3, "S-06 distant wall: $s06/100")
+        val s11 = falseStopRuns { Scenarios.s11BikeCrossingClear(it) }; assertTrue(s11 <= 5, "S-11 cyclist crossing ahead: $s11/100")
+        val s12 = falseStopRuns { Scenarios.s12SameDirection(it) }; assertTrue(s12 <= 18, "S-12 pedestrian ahead: $s12/100")
+        val s13 = falseStopRuns { Scenarios.s13HeadSweep(it) }; assertTrue(s13 <= 17, "S-13 head turns: $s13/100")
     }
 
     @Test fun `S-19 crowd - no STOP within 1_5 s of another and one cue at a time (REQ-15, REQ-17)`() {

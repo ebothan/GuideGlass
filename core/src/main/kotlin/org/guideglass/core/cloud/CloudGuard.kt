@@ -64,7 +64,11 @@ class CloudGuard(
         return fail(ctx, "timeout", req)
     }
 
-    fun onAnswer(raw: String, ctx: SpeakContext): GuardResult {
+    /** Never throws: any internal error yields "nothing to say" (review finding 5). */
+    fun onAnswer(raw: String, ctx: SpeakContext): GuardResult =
+        try { answer(raw, ctx) } catch (e: Exception) { GuardResult(emptyList(), listOf("guard_error")) }
+
+    private fun answer(raw: String, ctx: SpeakContext): GuardResult {
         if (disabled) return GuardResult(emptyList(), listOf("disabled"))
         val parsed = try { parse(raw) } catch (e: JsonException) { null } catch (e: IllegalArgumentException) { null }
         if (parsed == null) {
@@ -88,7 +92,11 @@ class CloudGuard(
 
         if (!parsed.answerable) return GuardResult(listOf(say("I can't tell from here.", req, ctx)), listOf("abstained"))
 
-        // Language and markup (T19).
+        // Crossing questions are never answered from the camera (review finding 3: "DON'T WALK" was read as WALK).
+        if (req.kind == RequestKind.CAN_I_CROSS)
+            return GuardResult(listOf(say("I can't help with crossing.", req, ctx)), listOf("crossing_never_instructed"))
+
+        // Language and markup (T19): any non-ASCII letter drops the answer (also stops look-alike letters).
         for (it in parsed.items) if (!latin(it.text)) return GuardResult(emptyList(), listOf("r4_language"))
 
         // Safety-negating content anywhere drops the whole answer (T1, T2).
@@ -107,10 +115,19 @@ class CloudGuard(
         for (it in parsed.items) {
             val text = stripDistances(clean(it.text))
             val risk = classify(it)
+            // Free text is spoken only if it stays off movement, traffic and path-state topics. Anything else is
+            // replaced by a fixed template built from the structured fields, or dropped (review finding 3).
+            val offTopic = TOPIC.containsMatchIn(text)
             when {
-                req.kind == RequestKind.CAN_I_CROSS -> {}  // handled below; never an action
-                it.kind == "scene_text" -> parts += if (req.kind == RequestKind.READ_TEXT && it.sceneText != null)
-                    "A sign reads: \"${clean(it.sceneText).take(120)}\"." else "A sign has text on it."
+                it.kind == "scene_text" -> {
+                    val quote = it.sceneText?.let { q -> clean(q).take(120) }
+                    parts += if (req.kind == RequestKind.READ_TEXT && quote != null && latin(quote) && !TOPIC.containsMatchIn(quote))
+                        "A sign reads: \"$quote\"." else "A sign has text on it."
+                }
+                risk != Risk.R2_ACTION && offTopic -> {
+                    codes += "topic_blocked"
+                    if (!actionStale) template(it, req, ctx)?.let { t -> parts += t }
+                }
                 risk == Risk.R0_INFO -> parts += sentence(text)
                 risk == Risk.R1_ADVISORY -> {
                     if (actionStale) { codes += "r1_stale"; continue }
@@ -129,16 +146,8 @@ class CloudGuard(
                 else -> codes += "dropped_${risk.name.lowercase()}"
             }
         }
-        if (req.kind == RequestKind.CAN_I_CROSS) {
-            val walkShown = parsed.items.any { (it.sceneText ?: "").contains("walk", ignoreCase = true) }
-            val light = ctx.deviceObjects.any { it.cls == "traffic_light" && it.ageS <= corroborationAgeS }
-            parts.clear()
-            parts += if (walkShown && light) "The signal appears to show WALK. Check traffic before crossing." else "I can't tell reliably."
-            codes += "crossing_never_instructed"
-        }
-        val text = parts.take(2).joinToString(" ")
+        val text = parts.distinct().take(2).joinToString(" ")
         if (text.isBlank()) return GuardResult(emptyList(), codes + "nothing_to_say")
-        check(!BANNED.containsMatchIn(text)) { "guard produced banned phrase: $text" }
         return GuardResult(listOf(say(text, req, ctx)), codes)
     }
 
@@ -154,7 +163,9 @@ class CloudGuard(
     }
 
     private fun corroborated(it: Item, req: CloudRequest, ctx: SpeakContext): String? = when (it.action) {
-        "forward" -> if (ctx.freeSpaceAheadM >= minFreeSpaceM && !ctx.obstacleInPath) "The camera suggests continuing ahead." else null
+        // "forward" is never spoken, corroborated or not: the device cannot see drop-offs, glass or stairs, so
+        // agreeing that the way ahead is free would be a clearance statement (review finding 3).
+        "forward" -> null
         "turn_left", "turn_right", "enter" -> it.objectClass?.let { cls ->
             val b = regionBearing(it.region) - wrap(ctx.yawRad - req.yawRad)
             ctx.deviceObjects.firstOrNull { o -> o.cls == cls && o.ageS <= corroborationAgeS && abs(wrap(o.bearingRad - b)) <= corroborationBearingRad }
@@ -171,6 +182,13 @@ class CloudGuard(
             "The camera may see a ${cls.replace('_', ' ')} ${direction(b)}; not confirmed."
         }
         else -> null   // "forward" without corroboration, or "stop": say nothing
+    }
+
+    /** Fixed wording from structured fields only, for items whose free text may not be spoken. */
+    private fun template(it: Item, req: CloudRequest, ctx: SpeakContext): String? {
+        val cls = it.objectClass?.takeIf { c -> c != "other" } ?: return null
+        val b = regionBearing(it.region) - wrap(ctx.yawRad - req.yawRad)
+        return "The camera may see a ${cls.replace('_', ' ')} ${direction(b)}; not confirmed."
     }
 
     private fun say(text: String, req: CloudRequest, ctx: SpeakContext) =
@@ -208,7 +226,13 @@ class CloudGuard(
         val R3 = Regex("""\b(clear|safe(ly)?|unobstructed|no obstacles?|nothing (in front|ahead|in the way)|go now|you can (go|cross|walk)|cross(ing)? now|walk now|(car|vehicle|traffic) (has )?stopped)\b""", RegexOption.IGNORE_CASE)
         /** Phrases no cue may ever contain (REQ-18); applied to every guard output. */
         val BANNED = Regex("""\b(clear|safe|walk now|cross now|go now)\b""", RegexOption.IGNORE_CASE)
-        private val IMPERATIVE = Regex("""^\s*(walk|go|turn|cross|step|move|head|continue|keep|stop|enter|proceed|bear|veer)\b""", RegexOption.IGNORE_CASE)
+        private val IMPERATIVE = Regex("""\b(walk|go|turn|cross|step|move|head|continue|keep|stop|enter|proceed|bear|veer)\b""", RegexOption.IGNORE_CASE)
+        /**
+         * Topics free text may not touch: movement, traffic, and the state of the way ahead. This is a word
+         * list and can still be evaded by a determined paraphrase; it narrows what a model can say, it does
+         * not prove anything. The schema, the R3 filter and the crossing rule are the other layers.
+         */
+        val TOPIC = Regex("""\b(clear\w*|safe\w*|unobstructed|obstacles?|obstruct\w*|block\w*|nothing|none|no (cars?|traffic|one|vehicles?)|free|empty|open|ok|okay|fine|good|go|goes|going|proceed\w*|continu\w*|walk\w*|cross\w*|step\w*|mov(e|es|ing)|turn\w*|enter(s|ing)?|pass(es|ing)?|stop\w*|wait\w*|traffic|cars?|vehicles?|trucks?|bus(es)?|road\w*|street|lanes?|lights?|signals?|way|path|ahead|forward|straight|should|must|may|can|please|just|quickly|now|hurry|for you|you)\b""", RegexOption.IGNORE_CASE)
         private val DISTANCE = Regex("""\b(about |around |approximately |roughly )?(\d+(\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|a few) ?(m|meters?|metres?|feet|foot|ft|yards?|steps?)( away)?\b""", RegexOption.IGNORE_CASE)
         private val STOPWORDS = setOf("the", "and", "for", "you", "your", "user", "into", "with", "this", "that", "are", "now", "to")
 
@@ -242,14 +266,14 @@ class CloudGuard(
             })
         }
 
-        fun clean(s: String) = s.replace(Regex("<[^>]*>"), " ").replace(Regex("[^\\p{L}\\p{N}\\p{P}\\p{Zs}]"), " ")
+        fun clean(s: String) = s.replace(Regex("\\p{Cf}"), "").replace(Regex("<[^>]*>"), " ").replace(Regex("[^\\p{L}\\p{N}\\p{P}\\p{Zs}]"), " ")
             .replace(Regex("\\s+"), " ").trim()
 
         fun stripDistances(s: String) = s.replace(DISTANCE, "").replace(Regex("\\s+([,.])"), "$1").replace(Regex("\\s+"), " ").trim()
 
         private fun latin(s: String): Boolean {
             val letters = s.filter { it.isLetter() }
-            return letters.isEmpty() || letters.count { it.code < 0x250 }.toDouble() / letters.length >= 0.9
+            return letters.all { it.code < 0x80 }
         }
 
         private fun tokens(s: String) = s.lowercase().split(Regex("[^a-z]+")).filter { it.length >= 3 && it !in STOPWORDS }.toSet()

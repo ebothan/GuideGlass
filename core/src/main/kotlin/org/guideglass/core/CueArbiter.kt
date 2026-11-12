@@ -45,7 +45,10 @@ class CueArbiter(private val cfg: CoreConfig) {
         if (cue.kind == CueKind.STOP && now - lastStopStart < cfg.stopRefractoryS) {
             records += CueRecord(cue, Fate.DROPPED_RATE, now); return emptyList()
         }
-        if (cur != null && cue.priority.level < cur.priority.level) {
+        // "Camera lost" and "Glasses disconnected" cut off everything except a STOP that is playing: hazard
+        // cautions must not delay the news that the system can no longer see (review finding 16).
+        val lost = cue.kind == CueKind.CAMERA_LOST || cue.kind == CueKind.GLASSES_LOST
+        if (cur != null && (cue.priority.level < cur.priority.level || (lost && cur.kind != CueKind.STOP && cur.priority.level >= cue.priority.level))) {
             records += CueRecord(cur, Fate.CUT_OFF, now)
             // Lower-priority cues waiting behind are left in the queue; they expire by staleness.
             return listOf(start(cue, now, interrupted = cur.kind))
@@ -59,7 +62,7 @@ class CueArbiter(private val cfg: CoreConfig) {
         val out = mutableListOf<PlayEvent>()
         if (playing != null && now >= playingEnd) playing = null
         while (playing == null && queue.isNotEmpty()) {
-            queue.sortWith(compareBy({ it.priority.level }, { it.requestedAt }))
+            queue.sortWith(compareBy({ it.priority.level }, { if (it.kind == CueKind.CAMERA_LOST || it.kind == CueKind.GLASSES_LOST) 0 else 1 }, { it.requestedAt }))
             val next = queue.removeAt(0)
             when {
                 now - next.requestedAt > next.staleAfterS -> records += CueRecord(next, Fate.DROPPED_STALE, now)

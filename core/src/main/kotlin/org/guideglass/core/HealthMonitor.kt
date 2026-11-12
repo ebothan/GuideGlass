@@ -48,14 +48,17 @@ class HealthMonitor(private val cfg: CoreConfig) {
         return listOf(Cue(CueKind.END, Priority.P1, "Hazard alerts off.", Earcon.END, "end", now, 5.0))
     }
 
-    fun onFrame(f: FrameInput) {
-        val now = f.stamps.perceptionDone
-        val fresh = f.contentHash != lastHash
+    /**
+     * [now] is the phone's own monotonic clock at arrival: timestamps inside the frame are never trusted for
+     * health (review finding 9). [usable] is false for frames too old or stamped in the future.
+     */
+    fun onFrame(f: FrameInput, now: Double, usable: Boolean = true) {
+        val fresh = usable && f.contentHash != lastHash
         lastHash = f.contentHash
         if (fresh) {
             lastFreshFrame = now
             if (freshSince.isNaN()) freshSince = now
-            arrivals.addLast(now to (f.stamps.perceptionDone - f.stamps.capture))
+            arrivals.addLast(now to (now - f.stamps.capture).coerceAtLeast(0.0))
         }
         while (arrivals.isNotEmpty() && now - arrivals.first().first > 2.0) arrivals.removeFirst()
         headTurning = (f.yawRateRadS ?: 0.0).let { kotlin.math.abs(it) > cfg.fastYawRadS }
@@ -99,6 +102,7 @@ class HealthMonitor(private val cfg: CoreConfig) {
         pendingRouteCue?.let { out += it; pendingRouteCue = null }
         if (state == SystemState.STOPPED) return out
 
+        while (arrivals.isNotEmpty() && now - arrivals.first().first > 2.0) arrivals.removeFirst()
         val fps = if (arrivals.size >= 2) (arrivals.size - 1) / (arrivals.last().first - arrivals.first().first).coerceAtLeast(1e-6) else 0.0
         // The loss timeout is 0.5 s at normal frame rates. At low rates (2 fps means a frame every 0.5 s)
         // it stretches to 2.5 frame intervals, so a slow stream is reported as reduced, not lost.

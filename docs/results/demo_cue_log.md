@@ -25,7 +25,7 @@ Obstacle contact: none. Replay of the saved event log (1970 events) gives identi
 | 0.53 | 0.83 | GLASSES | CAUTION | Obstacle, 12 o'clock. (cut off START) |
 | 1.35 | 1.66 | GLASSES | STOP | Stop. (cut off CAUTION) |
 | 11.42 | 11.60 | GLASSES | CAUTION | Obstacle, 12 o'clock. |
-| 12.46 | 12.74 | GLASSES | STOP | Stop. (cut off CAUTION) |
+| 12.12 | 12.40 | GLASSES | STOP | Stop. (cut off CAUTION) |
 
 ## S-10 cyclist approaching head-on
 
@@ -46,7 +46,6 @@ Obstacle contact: 2.83 s. Replay of the saved event log (621 events) gives ident
 | 0.00 | 0.21 | GLASSES | START | Hazard alerts on. |
 | 0.46 | 0.76 | GLASSES | CAUTION | Person, 12 o'clock. (cut off START) |
 | 0.74 | 1.05 | GLASSES | STOP | Stop. (cut off CAUTION) |
-| 1.37 | 1.55 | GLASSES | CAUTION | Person, 12 o'clock. |
 
 ## F-01 obstacle approached while the camera is lost
 
@@ -56,7 +55,7 @@ Obstacle contact: 6.28 s. Replay of the saved event log (788 events) gives ident
 |---|---|---|---|---|
 | 0.00 | 0.21 | GLASSES | START | Hazard alerts on. |
 | 0.68 | 0.98 | GLASSES | CAUTION | Obstacle, 12 o'clock. (cut off START) |
-| 1.97 | 2.28 | GLASSES | CAMERA_LOST | Camera lost. Use your cane. |
+| 1.80 | 2.11 | GLASSES | CAMERA_LOST | Camera lost. Use your cane. (cut off CAUTION) |
 
 ## F-05 Bluetooth link lost 4-8 s
 
@@ -83,9 +82,9 @@ Obstacle contact: none. Replay of the saved event log (2648 events) gives identi
 | t s | true distance along route m | cue | text |
 |---|---|---|---|
 | 77 | 100.2 | TURN_PRE | In 20 meters, turn right. |
-| 84 | 109.3 | TURN_NOW | Turn right now. |
+| 83 | 108.0 | TURN_NOW | Turn right at the next corner. |
 | 140 | 182.1 | CROSSING_AHEAD | Crossing ahead. |
-| 162 | 210.7 | TURN_PRE | In 20 meters, turn left. |
-| 170 | 221.1 | TURN_NOW | Turn left now. |
+| 160 | 208.1 | TURN_PRE | In 20 meters, turn left. |
+| 170 | 221.1 | TURN_NOW | Turn left at the next corner. |
 | 235 | 305.6 | TURN_PRE | Destination ahead. |
 | 249 | 323.8 | ARRIVAL | Arriving. |

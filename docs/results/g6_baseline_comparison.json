@@ -4,14 +4,17 @@
   {"setting": "deployed STOP, k=0.5", "fa_pct": 12.1438, "miss_pct": 1.1250, "flip_pct": 1.8625, "fa": 1943, "miss": 90, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 581},
   {"setting": "deployed STOP, k=0", "fa_pct": 9.9875, "miss_pct": 1.5375, "flip_pct": 2.0563, "fa": 1598, "miss": 123, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 500},
   {"setting": "deployed CAUTION+", "fa_pct": 37.2938, "miss_pct": 0.4125, "flip_pct": 1.4500, "fa": 5967, "miss": 33, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 651},
+  {"setting": "matched, pitch unknown", "fa_pct": 2.2938, "miss_pct": 19.6000, "flip_pct": 2.9500, "fa": 367, "miss": 1568, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 150},
+  {"setting": "deployed STOP, pitch unknown", "fa_pct": 27.0438, "miss_pct": 2.4125, "flip_pct": 14.3625, "fa": 4327, "miss": 193, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 594},
   {"setting": "matched, ground only", "fa_pct": 0.7000, "miss_pct": 44.6375, "flip_pct": 0.2500, "fa": 112, "miss": 3571, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 59},
+  {"setting": "matched, ground only, pitch unknown", "fa_pct": 2.5000, "miss_pct": 61.5750, "flip_pct": 5.5313, "fa": 400, "miss": 4926, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 136},
   {"setting": "matched, depth only", "fa_pct": 2.0875, "miss_pct": 16.7250, "flip_pct": 0.0000, "fa": 334, "miss": 1338, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 130},
   {"setting": "matched, depth sd 0.10, pitch sd 0 deg", "fa_pct": 0.6875, "miss_pct": 6.3625, "flip_pct": 0.2563, "fa": 110, "miss": 509, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 43},
   {"setting": "matched, depth sd 0.10, pitch sd 2 deg", "fa_pct": 0.7813, "miss_pct": 7.4125, "flip_pct": 0.2250, "fa": 125, "miss": 593, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 57},
   {"setting": "matched, depth sd 0.10, pitch sd 5 deg", "fa_pct": 1.1188, "miss_pct": 8.9125, "flip_pct": 0.3313, "fa": 179, "miss": 713, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 96},
   {"setting": "matched, depth sd 0.30, pitch sd 0 deg", "fa_pct": 1.2063, "miss_pct": 10.3500, "flip_pct": 0.9688, "fa": 193, "miss": 828, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 53},
   {"setting": "matched, depth sd 0.30, pitch sd 5 deg", "fa_pct": 1.9188, "miss_pct": 14.0000, "flip_pct": 0.6125, "fa": 307, "miss": 1120, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 140},
-  {"setting": "matched, depth sd 0.50, pitch sd 0 deg", "fa_pct": 2.0375, "miss_pct": 13.8500, "flip_pct": 1.6750, "fa": 326, "miss": 1108, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 75},
-  {"setting": "matched, depth sd 0.50, pitch sd 2 deg", "fa_pct": 2.3250, "miss_pct": 15.3750, "flip_pct": 1.5875, "fa": 372, "miss": 1230, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 93},
-  {"setting": "matched, depth sd 0.50, pitch sd 5 deg", "fa_pct": 2.8688, "miss_pct": 18.5125, "flip_pct": 1.0438, "fa": 459, "miss": 1481, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 135}
+  {"setting": "matched, depth sd 0.50, pitch sd 0 deg", "fa_pct": 2.0313, "miss_pct": 13.8875, "flip_pct": 1.6813, "fa": 325, "miss": 1111, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 75},
+  {"setting": "matched, depth sd 0.50, pitch sd 2 deg", "fa_pct": 2.3000, "miss_pct": 15.4375, "flip_pct": 1.5938, "fa": 368, "miss": 1235, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 91},
+  {"setting": "matched, depth sd 0.50, pitch sd 5 deg", "fa_pct": 2.8000, "miss_pct": 18.6125, "flip_pct": 1.0625, "fa": 448, "miss": 1489, "n_clear": 16000, "n_hazard": 8000, "fa_early_in_path": 133}
 ]

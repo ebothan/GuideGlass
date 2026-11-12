@@ -35,7 +35,8 @@ echo "core tests passed"
 
 # --- Regression gate G6: this design vs R5 on the repo's own scene set ----
 # Exports the identical seed-53 scenes (the export re-checks R5), scores the core on them, and fails if
-# the like-for-like setting no longer beats R5 on both misses and false alarms. Outputs stay in build/.
+# the matched-threshold setting no longer beats R5. NOTE: that setting is given a depth value and the
+# camera pitch, which R5 does not use; it is a regression tripwire, not a fair comparison (docs/review). Outputs stay in build/.
 mkdir -p core/build/eval
 ( cd "$TMP" && MPLBACKEND=Agg "$ROOT/.venv/bin/python" "$ROOT/paper/simulation/export_scenes.py" "$ROOT/core/build/eval/scenes.csv" )
 sh ./gradlew -p core --no-daemon -q runBaselineEval -Pargs="core/build/eval/scenes.csv core/build/eval" >/dev/null
@@ -43,6 +44,8 @@ sh ./gradlew -p core --no-daemon -q runBaselineEval -Pargs="core/build/eval/scen
 import json, sys
 m = next(r for r in json.load(open(sys.argv[1])) if r["setting"] == "matched")
 assert m["miss_pct"] < 47.39 and m["fa_pct"] <= 2.00, m
-print(f"G6 matched setting: false alarms {m['fa_pct']:.2f}% (R5 2.00), misses {m['miss_pct']:.2f}% (R5 47.39)  [L1]")
+u = next(r for r in json.load(open(sys.argv[1])) if r["setting"] == "matched, pitch unknown")
+print(f"G6 pitch unknown:   false alarms {u['fa_pct']:.2f}%, misses {u['miss_pct']:.2f}%  (worse than R5 on false alarms)")
+print(f"G6 matched setting (given depth and pitch R5 does not use): false alarms {m['fa_pct']:.2f}% (R5 2.00), misses {m['miss_pct']:.2f}% (R5 47.39)  [L1]")
 PY
 echo "init.sh: OK"

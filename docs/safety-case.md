@@ -1,103 +1,117 @@
 # Lightweight safety case
 
-Version 1, 2026-11-12. Draft origin: `docs/research/02-av-safety-engineering.md`. This version replaces the draft's targets with what was actually built and measured in P4.
+Version 2, 2026-11-12, revised after the adversarial review (`docs/review/adversarial-review.md`, response in `docs/review/response.md`). Draft origin: `docs/research/02-av-safety-engineering.md`. This version replaces the draft's targets with what was actually built and measured in P4.
 
 This is a research prototype. It has never run on a phone or glasses and has never been used by a person. Nothing below is a claim about real streets. Evidence rungs (L0-L5) are defined in `CLAUDE.md`. "L1" means simulated with synthetic scenes and an idealised detector.
 
 ## 1. Top claim
 
-> Within its operating domain, used by a trained person who always also uses a long cane or guide dog, the system gives supplementary audio cues about obstacles in the walking path and approaching objects. It tells the user whenever it cannot do so. It does not tell the user that anything is safe, clear, or time to cross.
+> Within its operating domain, used by a trained person who always also uses a long cane or guide dog, the system gives supplementary audio cues about obstacles in the walking path and approaching objects. It announces loss of the camera, the glasses link and the audio route, and low frame rate or low light. It is designed not to tell the user that anything is safe, clear, or time to cross.
 
-**Status of the top claim: not established.** Only the decision logic has evidence, and only at L1. The claim needs L4 and L5 evidence before anyone relies on it.
+**Status of the top claim: not established.** Only the decision logic has evidence, and only at L1. An independent adversarial review (`docs/review/`) found four critical defects in version 1 of this case. They are fixed or restated below, with residuals. The claim needs L4 and L5 evidence before anyone relies on it.
+
+The system does **not** announce every case in which it cannot see. Known silent cases: a detector that returns no boxes, a covered or fogged lens, a killed app, and a camera clock that runs ahead by less than 1 s.
 
 ## 2. Losses and hazards
 
 | ID | Loss or hazard |
 |---|---|
 | L-1 | Injury to the user (collision, fall, traffic) |
-| L-2 | Injury to others |
+| L-2 | Injury to others (no evidence gathered) |
 | L-3 | Loss of trust: the user abandons a useful aid, or over-relies on it |
-| L-4 | Privacy harm to bystanders (camera, cloud upload) |
+| L-4 | Privacy harm to bystanders (no evidence gathered; on-phone blurring before upload is not built) |
 | H-1 | The user approaches a hazard without a timely cue |
 | H-2 | The user takes an unsafe action because of a cue |
 | H-3 | The user believes the path is clear while the system cannot see |
 | H-4 | Audio output masks the environment or distracts |
 | H-5 | The user learns to ignore cues because many are false |
 | H-6 | The user reduces reliance on the cane or dog |
+| H-7 | The user's own guide dog or companion triggers alerts (added after review) |
 
 ## 3. Sub-claims, evidence and gaps
+
+Rates are from `docs/results/scenario_rates.md`: 300 seeds not used for tuning, 95% intervals there.
 
 ### C1. Hazard cues come early enough (H-1)
 
 | Evidence | Rung |
 |---|---|
-| STOP fires at 2.5 s to contact, shifted by measured frame age (AssessorTest) | L1 |
-| Still obstacles (person, pole, bin, low bollard, head-height branch, barrier): STOP reaches the ear at least 1.36 s before contact in 30/30 runs each; a simulated walker who stops on STOP never makes contact (ScenarioTest) | L1 |
-| Same at 7, 15, 30 fps and with 40% of detections dropped | L1 |
-| Approaching pedestrian: margin at least 1.36 s in 30/30. Cyclist at 4.5 m/s: STOP at least 1.0 s before contact in 30/30 | L1 |
-| Repo's shared scene set, like-for-like: 11.33% misses against R5's 47.39% (`docs/results/g6_baseline_comparison.md`) | L1 |
-| STOP capture-to-ear p95 613 ms against a 780 ms budget, with hardware delays drawn from assumptions (`docs/results/latency_report.md`) | L1 |
+| Still obstacles (person, pole, bin, low bollard, head-height branch, barrier): a simulated typical walker who stops on STOP makes contact in 0/300 runs each | L1 |
+| Same for a standing person at 5 fps, at 7 fps, with +0.4 s transport delay and in low light; and for a bin with 40% of detections dropped | L1 |
+| Typical walker at 0.6 m/s: 0/300 (STOP lead scales with walking speed) | L1 |
+| After stopping for a STOP and walking on, a second STOP is given: 300/300 | L1 |
+| Approaching pedestrian: STOP later than 1.36 s before contact in 3/300. Cyclist at 4.5 m/s: in 26/300; minimum 1.01 s | L1 |
 
 Gaps:
-- **No real detector has been run.** Every result assumes a box exists for the obstacle. Detector misses are not in any number here.
-- Drop-offs, curbs, stairs and glass are not detected at all (scenarios S-16, S-17).
-- The 1.36 s margin is for a typical walker (0.5 s reaction, one step). The conservative walker (1.0 s reaction, two steps) needs 2.36 s, which the default 2.5 s setting does not guarantee.
-- The cyclist margin (1.0 s) is below even the typical requirement.
-- Bluetooth video and audio delays are assumed. If they are longer than assumed, every margin shrinks by the difference.
-- Range comes from an assumed depth error (30% scale error) and an assumed pitch error (2°). Real errors are unknown.
+- **No real detector, depth model or pitch estimator has been run.** Every result assumes a box exists for the obstacle and that range errors are as assumed. A detector that returns nothing gives silence.
+- **Conservative walker (1.0 s reaction, two steps), default setting: contact in 9-12% of still-obstacle runs and 33% for the head-height branch.** With the conservative setting configured: 0-1/300, and 8/300 for the branch. The conservative setting has a high false-STOP cost (C4).
+- A person who first becomes visible 3 m ahead: contact in 19.7% of runs for the typical walker and 100% for the conservative one.
+- 10 fps with 20% frame loss: contact in 1.0%.
+- The comparison with the repo's rule R5 is not like-for-like (`docs/results/g6_baseline_comparison.md`). The method is given a depth value derived from the true distance. With the camera pitch also given it shows 11.3% misses against 47.4%; without the pitch, 19.6% misses and more false alarms than R5.
+- The perception stand-in is also given the true head-to-travel angle, camera height (1.30 m, not glasses height), walking speed and the head-height flag. Each is an estimator that does not exist yet. The reviewer measured, for example, 29% late STOPs with the head turned 20° and its direction unknown.
+- Drop-offs, curbs, stairs and glass are not detected. Nothing outside the 46° horizontal field of view is seen: a car leaving a driveway, a cyclist from the side.
+- Bluetooth video and audio delays are assumed. The latency report (`docs/results/latency_report.md`) is an arithmetic check, not a measurement.
+- Two objects closer than about 1.5 m are treated as one; without a stop between them the second gets no cue of its own.
 
 ### C2. Cues do not cause unsafe actions (H-2)
 
 | Evidence | Rung |
 |---|---|
-| The safety path gives no steering instruction; the repo's "veer left/right" hint is removed (ScenarioTest banned-phrase check) | L1 |
-| No cue contains "clear", "safe", "walk now" or "cross now" (ScenarioTest, NavigatorTest, CloudGuardTest) | L1 |
-| Crossings are announced only as "Crossing ahead" | L1 |
-| Cloud answers pass a guard: 21 tests including injected sign text, stale answers, and "path is clear" | L1 |
+| The safety path gives no steering instruction; the repo's "veer left/right" hint is removed | L1 |
+| Navigation never says "now": "Turn right at the next corner."; crossings only "Crossing ahead." | L1 |
+| Cloud: crossing questions are always refused; "forward" is never spoken; free text on movement, traffic or path state is not spoken; the reviewer's 24 paraphrases are silent; no input can make the guard throw | L1 |
 
 Gaps:
-- "Stop" on stairs or mid-crossing may itself be dangerous (research note 02, unsafe control action 8). There is no stairs or crossing context detection, so this is unmitigated.
-- The guard's banned-phrase and imperative checks are word lists. A paraphrase can evade them. The schema limits this but does not remove it.
-- Turn cues fire 1.1-7.7 s early because of GPS noise. An early "turn now" could turn a user into a wall or a road before the corner. The wording is hedged ("soon") only when the reported accuracy radius exceeds the distance.
+- The cloud filter is a word list and can be evaded by a paraphrase that avoids the listed words.
+- Turn cues come several seconds before the corner (GPS noise). Crossings are recognised only from the word "cross" in route text, tested on a synthetic route. A real route may steer a turn across a road without any crossing announcement.
+- A STOP on stairs or mid-crossing may itself be dangerous, and false STOPs are common (C4). Unmitigated.
+- Clock positions assume the head direction relative to travel is known. If it is not, "2 o'clock" is relative to the camera.
 
-### C3. Silence never means clear (H-3)
+### C3. Loss of sensing is announced (H-3)
 
 | Evidence | Rung |
 |---|---|
-| Camera stopped, frozen, or perception stalled: "Camera lost. Use your cane." starts within 0.6 s of the last fresh frame when nothing of equal priority is playing; p95 877 ms to the ear (HealthTest, latency report) | L1 |
+| Camera stopped, frozen, stalled, or delivering frames more than 1 s old: "Camera lost. Use your cane." starts within 0.6 s of the last usable frame, or within 1.25 s if a "Stop." is playing | L1 |
+| Health uses only the phone's own clock; a frame stamped in the future does not hide the loss | L1 |
 | No hazard cue is given from stale data while the camera is lost | L1 |
-| Bluetooth loss: "Glasses disconnected" on the phone speaker within 1.0 s of the link signal | L1 |
-| Low frame rate, latency spike, low light, audio reroute: each announced once, recovery announced | L1 |
+| Bluetooth loss: "Glasses disconnected" on the phone speaker within 1.0 s of the link signal; low frame rate, low light and audio reroute are each announced | L1 |
 
 Gaps:
-- If the app is killed, nothing is announced. Start and stop chimes are the only bracket.
-- If another equal-priority cue is playing, "Camera lost" waits for it: up to 1.6 s measured.
-- Detecting the Bluetooth link state and the audio route depends on operating-system callbacks that have not been exercised.
-- A camera that delivers fresh but useless frames (lens covered, fogged, pointing at the sky) looks healthy. Only low brightness is checked.
-- The optional "alive" tick is not implemented.
+- The silent cases listed under the top claim.
+- A stream that flaps on and off every few seconds alternates "Camera lost" and "Camera back".
+- "Reduced detection." does not tell the user what is reduced.
+- Link and audio-route callbacks from the operating system have not been exercised. The phone speaker may be inaudible in a pocket.
+- Thermal throttling or low battery would push the phone into degraded states; neither is monitored.
 
-### C4. False alarms stay low enough to keep trust (H-5)
+### C4. False alarms stay low enough to keep trust (H-5, H-7)
 
-| Evidence | Rung |
-|---|---|
-| Shared scene set, like-for-like: 1.30% false alarms against R5's 2.00% | L1 |
-| One alert sequence per approach; no repeat while standing; no second STOP within 1.5 s (ScenarioTest S-07, S-08, S-19) | L1 |
-| Residual false STOPs measured: parked car beside the path 1/30, cyclist crossing ahead 1/30, pedestrian ahead at same pace 2/30, fast head turns 1/30 | L1 |
+**Not supported.** Measured rates on scenes where no STOP should be given:
 
-Gaps:
-- The deployed setting gives 15.9% alerts on the harness's "hazard-free" scenes. About a quarter of those are objects in the path 2.5-3.6 m away, which are early warnings rather than errors; the rest are real false alarms caused by range error.
-- No false alarms per walking hour figure exists. Per-scene rates cannot be converted to it without real footage.
-- Users respond to alarms about as often as the alarms are true (research note 03). No target for the share of true STOPs has been validated.
+| Scene | Runs with a false STOP | Runs with any CAUTION |
+|---|---|---|
+| Parked car beside the path | 9.7% | 13.7% |
+| Wall never closer than 7.4 m | 0.7% | 77.7% |
+| Cyclist crossing well ahead | 2.0% | 67.3% |
+| Pedestrian ahead at the same pace | 13.0% | 100% |
+| Fast head turns past roadside objects | 12.0% | 7.7% |
+
+- With the conservative setting, following a pedestrian gives a false STOP in 87% of runs.
+- On the repo's scene set the deployed setting alerts on 15.9% of hazard-free scenes (27.0% without a pitch estimate).
+- A guide dog 1 m ahead: one STOP at first sight, then 0.03 per minute.
+- Repetition is controlled: one alert sequence per approach in 299/300 runs for both repetition cases.
+- No false alarms per walking hour figure exists.
+
+Users respond to alarms about as often as the alarms are true (research note 03). At these rates the STOP cue would probably lose its meaning on a busy sidewalk. Reducing them without reopening the misses fixed under C1 is the main open design problem.
 
 ### C5. Audio does not mask the environment (H-4)
 
-Evidence: non-urgent speech is limited to once per 4 s; one cue at a time (ArbiterTest). L1.
+Evidence: non-urgent speech is limited to once per 4 s; one cue at a time. L1.
 
-Gaps: nothing is known about loudness, masking of traffic by open-ear speakers, or cue load in real crowds. Needs L4 and L5.
+Gaps: nothing is known about loudness, masking of traffic by open-ear speakers, or real cue load. CAUTION cues are frequent (C4). Needs L4 and L5.
 
 ### C6. The user keeps using the cane or dog (H-6)
 
-Evidence: none. This is a training and study-protocol matter. The "Camera lost" wording says "Use your cane". Needs L5 with an orientation and mobility specialist.
+Evidence: none. This is a training and study-protocol matter. Needs L5 with an orientation and mobility specialist.
 
 ## 4. Operating domain
 

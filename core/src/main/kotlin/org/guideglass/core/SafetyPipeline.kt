@@ -41,7 +41,12 @@ class SafetyPipeline(
     fun onWalkSpeed(v: Double) { walkSpeedMS = v }
 
     fun onFrame(f: FrameInput, now: Double): List<PlayEvent> {
-        health.onFrame(f)
+        // Frames older than the usable age, or stamped in the future, are not evidence that the camera works
+        // and are not used for hazard decisions (review findings 9 and 16).
+        val age = now - f.stamps.capture
+        val usable = age <= cfg.maxUsableFrameAgeS && age >= -0.05
+        health.onFrame(f, now, usable)
+        if (!usable) return onTick(now)
         val out = mutableListOf<PlayEvent>()
         out += submit(health.tick(now), now)
         tracker.update(f, walkSpeedMS)
@@ -101,7 +106,20 @@ class SafetyPipeline(
         return record(out)
     }
 
+    private var recordsSeen = 0
+
+    /** Tell the assessor about hazard cues the arbiter dropped, so they are requested again if still due. */
+    private fun feedBack() {
+        val recs = arbiter.records
+        while (recordsSeen < recs.size) {
+            val r = recs[recordsSeen++]
+            val hazard = r.cue.kind == CueKind.STOP || r.cue.kind == CueKind.CAUTION || r.cue.kind == CueKind.MOVING_OBJECT
+            if (hazard && (r.fate == Fate.DROPPED_RATE || r.fate == Fate.DROPPED_STALE || r.fate == Fate.CUT_OFF)) assessor.notPlayed(r.cue)
+        }
+    }
+
     private fun record(evts: List<PlayEvent>): List<PlayEvent> {
+        feedBack()
         for (e in evts) {
             val start = if (e.cue.earcon == Earcon.NONE) cfg.speechStartS else cfg.earconStartS
             log += CueLog(e, frameStamps[e.cue.captureTime], e.startT + start + cfg.audioOutLatencyS)
