@@ -102,7 +102,8 @@ data class CoreConfig(
     // Geometry (repo's walking path definition, kept for comparability).
     val corridorHalfWidthM: Double = 0.45,
     val corridorIncludesObjectWidth: Boolean = true,
-    val usePessimisticRange: Boolean = true,
+    /** Time to contact uses range minus this many standard deviations (1 = pessimistic bound, 0 = mean). */
+    val pessimismK: Double = 1.0,
     // Track life in seconds (REQ-05, ADR 0004).
     val confirmAfterS: Double = 0.2,
     val coastS: Double = 0.6,

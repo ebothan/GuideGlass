@@ -28,11 +28,14 @@ data class RunResult(
     val contactT: Map<Int, Double?>,
     /** Per obstacle: smallest forward gap while laterally overlapping the walker, metres. */
     val minGapM: Map<Int, Double>,
-    /** Per obstacle: first time the open-loop walker would reach it (for warning-margin metrics). */
     val stages: Map<String, List<Double>>,
     val coreComputeS: List<Double>,
     val states: List<Pair<Double, SystemState>>,
     val walkerX: List<Pair<Double, Double>>,
+    /** Every input the core received, in order (replayable, see [EventLog]). */
+    val events: List<CoreEvent> = emptyList(),
+    /** Frame deliveries to the core: (time, content hash). */
+    val deliveries: List<Pair<Double, Long>> = emptyList(),
 ) {
     fun of(kind: CueKind) = cues.filter { it.kind == kind }
 }
@@ -60,6 +63,9 @@ class Runner(
         val end = sc.durationS
 
         val cues = mutableListOf<SimCue>()
+        val events = mutableListOf<CoreEvent>()
+        val deliveries = mutableListOf<Pair<Double, Long>>()
+        var lastFps = -1.0
         val stages = linkedMapOf<String, MutableList<Double>>()
         fun stage(n: String, v: Double) { stages.getOrPut(n) { mutableListOf() } += v }
         val compute = mutableListOf<Double>()
@@ -108,7 +114,8 @@ class Runner(
             }
         }
 
-        take(p.start(0.0), 0.0)
+        fun ev(e: CoreEvent) = EventLog.apply(p, e).also { events += e }
+        take(ev(CoreEvent.Start(0.0)), 0.0)
         var t = 0.0
         while (t <= end + 1e-9) {
             // --- walker kinematics
@@ -131,16 +138,16 @@ class Runner(
 
             // --- link, network and audio-route faults
             val linkDown = inAny(t, f.linkDown)
-            if (linkDown != linkWasDown) { linkWasDown = linkDown; take(p.onLink(!linkDown, t), t) }
+            if (linkDown != linkWasDown) { linkWasDown = linkDown; take(ev(CoreEvent.Link(t, !linkDown)), t) }
             val netDown = inAny(t, f.networkDown)
-            if (netDown != netWasDown) { netWasDown = netDown; take(p.onNetwork(!netDown, t), t) }
+            if (netDown != netWasDown) { netWasDown = netDown; take(ev(CoreEvent.Network(t, !netDown)), t) }
             val phone = inAny(t, f.audioToPhone)
-            if (phone != phoneWas) { phoneWas = phone; take(p.onAudioRoute(if (phone) AudioRoute.PHONE else AudioRoute.GLASSES, t), t) }
+            if (phone != phoneWas) { phoneWas = phone; take(ev(CoreEvent.Route(t, if (phone) AudioRoute.PHONE else AudioRoute.GLASSES)), t) }
 
             // --- capture a frame
             if (t + 1e-9 >= nextCapture) {
                 val fps = f.fpsOverride.firstOrNull { t in it.first }?.second ?: f.fps
-                p.health.onRequestedFps(fps)
+                if (fps != lastFps) { lastFps = fps; ev(CoreEvent.RequestedFps(t, fps)) }
                 nextCapture += 1.0 / fps
                 val delivered = !linkDown && !inAny(t, f.gaps) && world.nextDouble() >= f.dropProb
                 if (delivered) {
@@ -169,23 +176,24 @@ class Runner(
             if (ready.isNotEmpty()) {
                 pending.removeAll(ready)
                 val fr = ready.maxBy { it.readyT }
-                p.onWalkSpeed(max(0.0, speed + 0.05 * world.nextGaussian()))
+                val walkV = max(0.0, speed + 0.05 * world.nextGaussian())
+                deliveries += t to fr.input.contentHash
                 val c0 = System.nanoTime()
-                val evts = p.onFrame(fr.input, t)
+                val evts = ev(CoreEvent.Frame(t, fr.input, walkV))
                 compute += (System.nanoTime() - c0) / 1e9
                 onFrameDone?.invoke(t, fr.input, p)
                 take(evts, t)
             }
 
             // --- 10 Hz tick
-            if (t - lastTick >= 0.1 - 1e-9) { lastTick = t; take(p.onTick(t), t) }
-            take(p.advance(t), t)
+            if (t - lastTick >= 0.1 - 1e-9) { lastTick = t; take(ev(CoreEvent.Tick(t)), t) }
+            take(ev(CoreEvent.Advance(t)), t)
 
             if (p.health.state != lastState) { lastState = p.health.state; states += t to p.health.state }
             t += dt
         }
         compute.sort()
-        return RunResult(sc, cues, p, contact, minGap, stages, compute, states, walk)
+        return RunResult(sc, cues, p, contact, minGap, stages, compute, states, walk, events, deliveries)
     }
 
     companion object {

@@ -34,7 +34,7 @@ data class Assessment(
  */
 class HazardAssessor(private val cfg: CoreConfig) {
 
-    private class State(var level: AlertLevel, var lastInZone: Double)
+    private class State(var level: AlertLevel, var lastInZone: Double, var alongAtAlert: Double = Double.POSITIVE_INFINITY) // closest approach while alerted
     private data class Memory(val along: Double, val lat: Double, val level: AlertLevel, val t: Double, val sigma: Double, val closing: Double)
 
     private val state = HashMap<Int, State>()
@@ -59,7 +59,7 @@ class HazardAssessor(private val cfg: CoreConfig) {
         val vLat = e.vFwd * s + e.vLat * c
 
         val elapsed = (now - captureT) + cfg.earconStartS + cfg.audioOutLatencyS
-        val rangeForTtc = max(0.0, if (cfg.usePessimisticRange) along - e.sigma else along)
+        val rangeForTtc = max(0.0, along - cfg.pessimismK * e.sigma)
         val walking = walkSpeed > cfg.standingSpeedMS
 
         val ttcStatic = if (walking && along > 0) rangeForTtc / walkSpeed - elapsed else Double.POSITIVE_INFINITY
@@ -91,13 +91,23 @@ class HazardAssessor(private val cfg: CoreConfig) {
         // For a moving object its measured closing speed replaces the static assumption (S-12: a
         // pedestrian ahead walking the same way is not closing, so it must not alert).
         // Expansion alone may raise CAUTION but never STOP: STOP needs a range-based channel.
-        val ttc = if (independent) ttcMotion else ttcStatic
+        // Movable classes: if even a lower bound (estimate minus one standard error) of the fitted closing speed is faster than a
+        // still object would close, use it. Approaching pedestrians are otherwise treated as still until
+        // the motion test passes three times, which made STOP late in S-09.
+        val movableClass = tr.cls in MOVABLE
+        val closingLB = closing - e.vFwdSE
+        val ttcFast = if (movableClass && enough && closingLB > expected && along > 0) rangeForTtc / closingLB - elapsed
+            else Double.POSITIVE_INFINITY
+        val ttc = minOf(if (independent) ttcMotion else ttcStatic, ttcFast)
         val tauCaution = ttcTau <= cautionAtEar
         val movingChannel = independent || latMoving || (tauCaution && ttcTau < 0.6 * ttcStatic)
 
         val halfW = cfg.corridorHalfWidthM + if (cfg.corridorIncludesObjectWidth) e.widthM / 2.0 else 0.0
         val latAtContact = if (ttc.isFinite() && latMoving) lat + vLat * max(0.0, ttc + elapsed) else lat
-        val inPath = along > 0 && (abs(lat) <= halfW || (latMoving && abs(latAtContact) <= halfW))
+        // An object moving sideways is judged by where it will be at contact, not where it is now (a cyclist
+        // crossing ahead passes through the path but is gone when the walker arrives), unless it is already close.
+        val inPath = along > 0 && if (latMoving) abs(latAtContact) <= halfW || (abs(lat) <= halfW && along <= cfg.closeFloorM)
+            else abs(lat) <= halfW
 
         val approaching = walking || closing > 0.2
         // Objects that can move on their own get no STOP from the still-object assumption until their
@@ -110,7 +120,7 @@ class HazardAssessor(private val cfg: CoreConfig) {
         val level = when {
             !inPath -> AlertLevel.NONE
             along <= cfg.closeFloorM && approaching -> AlertLevel.STOP
-            ttc <= stopAtEar && (independent || staticStopAllowed) -> AlertLevel.STOP
+            ttc <= stopAtEar && (independent || staticStopAllowed || ttcFast <= stopAtEar) -> AlertLevel.STOP
             tauStop -> AlertLevel.STOP
             ttc <= cautionAtEar || tauCaution -> AlertLevel.CAUTION
             else -> AlertLevel.NONE
@@ -151,8 +161,10 @@ class HazardAssessor(private val cfg: CoreConfig) {
                 if (inherited != null) memories.remove(inherited)
                 State(inherited?.level ?: AlertLevel.NONE, now)
             }
-            if (a.level != AlertLevel.NONE) st.lastInZone = now
-            else if (now - st.lastInZone >= cfg.rearmS) st.level = AlertLevel.NONE
+            if (a.level != AlertLevel.NONE) { st.lastInZone = now; st.alongAtAlert = minOf(st.alongAtAlert, a.alongM) }
+            // Re-arm only while the user is walking or has backed away by more than 1 m: a user standing in
+            // front of an obstacle must not be told again (S-08), however the noise moves the estimate.
+            else if (now - st.lastInZone >= cfg.rearmS && (walkSpeed > cfg.standingSpeedMS || a.alongM > st.alongAtAlert + 1.0)) { st.level = AlertLevel.NONE; st.alongAtAlert = Double.POSITIVE_INFINITY }
             if (a.level.ordinal > st.level.ordinal) {
                 cues += cueFor(tr, a, captureT, now)
                 st.level = a.level
