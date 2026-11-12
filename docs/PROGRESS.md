@@ -45,6 +45,30 @@ Decisions:
   - Audio route latency.
   - Phone latency for most models.
 
-## Next
-1. P2: `docs/00-problem-constraints-goals.md` (needs, ODD, hazard and scenario library, REQ-xx, latency budget tagged assumed/measured/read, lead-time windows per cue type).
-2. P3: ADRs comparing at least two architectures; degraded modes.
+## 2026-11-12: P2 Problem, constraints, goals (done)
+- `docs/00-problem-constraints-goals.md`: needs, 14 constraints, ODD, 43 scenarios (S-, F-, NV-, C-), 30 requirements, latency budget, lead-time windows.
+- Latency budget (all L0; every figure tagged assumed or read, none measured):
+  - 440 ms p50 and 780 ms p95 to earcon onset.
+  - 570 ms p50 and 1040 ms p95 to speech onset.
+- Design values: `L_urgent` 0.70 s, `L_speech` 1.00 s, both configuration.
+- Lead times:
+  - STOP needs 2.06 s typical and 3.06 s conservative, so the default is 2.5 s (the repo's 2.0 s is too late).
+  - CAUTION fires at 4.0 s.
+  - "Turn now" fires at 2.9 s predicted time.
+
+## 2026-11-12: P3 Architecture (done)
+- ADR 0001: three architectures compared; chose the layered on-device stack with a separate health monitor. Keep/replace table for repo pieces.
+- ADR 0002: `core/` is a plain Kotlin/JVM library, deterministic and event-driven, with ports for platform adapters.
+- ADR 0003: G2 stays blocked; G2a (desktop end-to-end run) added and labelled L3-substitute.
+- ADR 0004: metric walker-centred tracks, two range sources, two time-to-contact channels, pessimistic bound, prediction to the ear, time-based track life.
+- ADR 0005: cloud answers are data behind a guard.
+- `docs/01-architecture.md`: components, timing record, nine system states with what the user hears, cue priorities.
+- Plan unchanged; the P4 order in `docs/PLAN.md` still holds.
+
+## Next (P4, in this order)
+1. `core/` Gradle build + walking skeleton: synthetic frame source, geometric perception double, tracker stub, decision, logging audio sink, stage timestamps (G1, G2a seed, G3 seed).
+2. Health monitor and degraded cues (G4).
+3. Tracker + hazard assessor; export the repo's scene set and score on it with a range-error sweep (G6).
+4. Cue arbiter incl. double approach (G8).
+5. Navigator on a replayed GPS trace with recorded Directions responses (G5).
+6. Cloud guard with the test cases from `docs/research/07` (G7).

@@ -2,15 +2,60 @@
   "updated": "2026-11-12",
   "rungs": "L0 assumed/read, L1 simulated, L2 replayed real footage, L3 emulator/mock device, L4 real device+glasses, L5 supervised BLV users",
   "gates": {
-    "G1": {"title": "Clean checkout builds and passes unit tests via init.sh", "status": "pending", "evidence": "init.sh exists and reproduces the R5 baseline; Kotlin core not yet written"},
-    "G2": {"title": "App runs end to end in emulator on replayed and synthetic scenes; cues produced, spoken, logged", "status": "blocked", "evidence": "User declined Android SDK/emulator install on 2026-11-11. Plan: run the same pipeline end to end on the JVM with a mock frame source and a logged speech sink; emulator run stays open until tooling is allowed or done on the user's machine"},
-    "G3": {"title": "Per-stage timestamps; latency report p50/p95/p99 vs budget, pass/fail per cue type", "status": "pending", "evidence": ""},
-    "G4": {"title": "Safety path survives loss of network, camera, Bluetooth, slow cloud; distinct degraded cue within stated time", "status": "pending", "evidence": ""},
-    "G5": {"title": "Navigation on replayed GPS trace A to B with Maps (or recorded responses); predicted-time turn rule", "status": "pending", "evidence": ""},
-    "G6": {"title": "Hazard evaluation on scene set shared with baseline; miss and false-alarm rates vs R5 (2.0% FA, 47.4% miss)", "status": "pending", "evidence": "Baseline reproduced at L1 by init.sh: R5 2.00% FA, 47.39% miss"},
-    "G7": {"title": "Cloud tier off the critical path; hallucination guard tested", "status": "pending", "evidence": ""},
-    "G8": {"title": "Cue priority, arbitration, repetition control tested incl. stop/back off/approach again", "status": "pending", "evidence": ""},
-    "G9": {"title": "Safety case, ADRs, research notes, hardware checklist committed; adversarial review done", "status": "pending", "evidence": ""},
-    "G10": {"title": "All work pushed to av-prototype", "status": "pending", "evidence": "Branch exists on ebothan/GuideGlass"}
+    "G1": {
+      "title": "Clean checkout builds and passes unit tests via init.sh",
+      "status": "pending",
+      "evidence": "init.sh exists and reproduces the R5 baseline; Kotlin core not yet written"
+    },
+    "G2": {
+      "title": "App runs end to end in emulator on replayed and synthetic scenes; cues produced, spoken, logged",
+      "status": "blocked",
+      "evidence": "User declined Android SDK/emulator install on 2026-11-11 (ADR 0003). Gate unchanged, not passed; see G2a"
+    },
+    "G2a": {
+      "title": "Full pipeline runs end to end on the desktop JVM with a mock frame source on synthetic scenes and replayed logs; cues produced, rendered by a logging audio sink, logged (ADR 0003; evidence labelled L3-substitute)",
+      "status": "pending",
+      "evidence": ""
+    },
+    "G3": {
+      "title": "Per-stage timestamps; latency report p50/p95/p99 vs budget, pass/fail per cue type",
+      "status": "pending",
+      "evidence": ""
+    },
+    "G4": {
+      "title": "Safety path survives loss of network, camera, Bluetooth, slow cloud; distinct degraded cue within stated time",
+      "status": "pending",
+      "evidence": ""
+    },
+    "G5": {
+      "title": "Navigation on replayed GPS trace A to B with Maps (or recorded responses); predicted-time turn rule",
+      "status": "pending",
+      "evidence": ""
+    },
+    "G6": {
+      "title": "Hazard evaluation on scene set shared with baseline; miss and false-alarm rates vs R5 (2.0% FA, 47.4% miss)",
+      "status": "pending",
+      "evidence": "Baseline reproduced at L1 by init.sh: R5 2.00% FA, 47.39% miss"
+    },
+    "G7": {
+      "title": "Cloud tier off the critical path; hallucination guard tested",
+      "status": "pending",
+      "evidence": ""
+    },
+    "G8": {
+      "title": "Cue priority, arbitration, repetition control tested incl. stop/back off/approach again",
+      "status": "pending",
+      "evidence": ""
+    },
+    "G9": {
+      "title": "Safety case, ADRs, research notes, hardware checklist committed; adversarial review done",
+      "status": "pending",
+      "evidence": ""
+    },
+    "G10": {
+      "title": "All work pushed to av-prototype",
+      "status": "pending",
+      "evidence": "Branch exists on ebothan/GuideGlass"
+    }
   }
 }
