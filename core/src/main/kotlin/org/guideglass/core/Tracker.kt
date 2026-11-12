@@ -118,8 +118,12 @@ class Tracker(private val cfg: CoreConfig) {
 
     fun all(): List<Track> = tracks
 
-    /** Tracks usable for alerts at [now]: confirmed and seen within the coast time. */
-    fun alertable(now: Double): List<Track> = tracks.filter { it.confirmed && now - it.lastSeen <= cfg.coastS }
+    /**
+     * Tracks usable for alerts: confirmed and seen within the coast time of [captureT], the capture time of
+     * the newest frame. Measured in capture time, not decision time, so a late frame is not judged stale
+     * because of its own transport delay (found by AssessorTest; affected the F-04 latency spike).
+     */
+    fun alertable(captureT: Double): List<Track> = tracks.filter { it.confirmed && captureT - it.lastSeen <= cfg.coastS }
 
     fun update(frame: FrameInput, walkSpeed: Double): List<Track> {
         val t = frame.stamps.capture

@@ -102,6 +102,9 @@ class Navigator(val route: Route, private val cfg: NavConfig = NavConfig()) {
     private var wrongSince = Double.NaN
     private var offAnnounced = false
     private var wrongAnnounced = false
+    private var sFilt = Double.NaN
+    private var vFilt = 0.0
+    private var lastFixT = Double.NaN
 
     var alongM = 0.0; private set
     var crossTrackM = 0.0; private set
@@ -154,12 +157,26 @@ class Navigator(val route: Route, private val cfg: NavConfig = NavConfig()) {
         val p = enu(fix.pos)
         // Search near the last position first so a sideways GPS jump cannot skip ahead along the route.
         val (s, ct, k) = if (seg < 0) project(p, 0, poly.size - 2) else project(p, seg - 3, seg + 6)
-        seg = k; alongM = s; crossTrackM = ct
-        history.addLast(fix.t to s)
+        seg = k; crossTrackM = ct
+        // Smooth the along-route position with a predict-and-correct filter. Speed comes from the fix
+        // (phones report Doppler speed) when available: differencing 4 m-noise positions gives about
+        // +/-2 m/s of speed noise, which fired turn cues up to 20 s early in the first test run.
+        val dtFix = if (lastFixT.isNaN()) 0.0 else (fix.t - lastFixT).coerceAtLeast(0.0)
+        lastFixT = fix.t
+        if (sFilt.isNaN()) sFilt = s else {
+            val pred = sFilt + vFilt * dtFix
+            val r = s - pred
+            sFilt = pred + ALPHA * r
+            if (dtFix > 0) vFilt += BETA * r / dtFix
+        }
+        fix.speedMS?.let { vFilt = if (vFilt >= 0) it else -it }
+        alongM = sFilt
+        history.addLast(fix.t to sFilt)
         while (history.size > 2 && fix.t - history.first().first > 3.0) history.removeFirst()
         val ds = if (history.size >= 2) (history.last().second - history.first().second) / (history.last().first - history.first().first) else 0.0
-        speedMS = fix.speedMS ?: max(0.0, ds)
-        stepIndex = events.indexOfFirst { it.first > s + 0.5 }.let { if (it < 0) events.size else it }
+        speedMS = fix.speedMS ?: max(0.0, vFilt)
+        val sNow = sFilt
+        stepIndex = events.indexOfFirst { it.first > sFilt + 0.5 }.let { if (it < 0) events.size else it }
 
         val out = mutableListOf<Cue>()
         val t = fix.t
@@ -180,8 +197,10 @@ class Navigator(val route: Route, private val cfg: NavConfig = NavConfig()) {
         val idx = stepIndex
         if (idx >= events.size) return out
         val (sEv, step) = events[idx]
-        val dist = sEv - s
-        val tTo = dist / speedMS
+        val dist = sEv - sNow
+        // Pessimistic distance: subtract the fix's accuracy radius, as hazards use range minus one sigma.
+        // GNSS error near a corner is about the whole 3-4 m lead distance (docs/00 section 8.4).
+        val tTo = max(0.0, dist - fix.accuracyM) / speedMS
         val hedge = fix.accuracyM > dist
         val crossing = step?.instruction?.contains("cross", ignoreCase = true) == true
         val nowCue = when {
@@ -209,6 +228,8 @@ class Navigator(val route: Route, private val cfg: NavConfig = NavConfig()) {
 
     companion object {
         const val EARTH_R = 6_371_000.0
+        private const val ALPHA = 0.3
+        private const val BETA = 0.05
 
         fun maneuverWords(m: String?): String? = when (m) {
             "turn-left" -> "Turn left"; "turn-right" -> "Turn right"

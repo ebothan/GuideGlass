@@ -29,11 +29,20 @@ assert abs(r["fa"] - 2.00) < 0.01 and abs(r["miss"] - 47.39) < 0.01, r
 print(f"baseline R5 reproduced: false alarms {r['fa']:.2f}%, misses {r['miss']:.2f}%  [L1]")
 PY
 
-# --- Kotlin safety core (added in P4) -------------------------------------
-if [ -f core/settings.gradle.kts ]; then
-  sh ./gradlew -p core --no-daemon -q test
-  echo "core tests passed"
-else
-  echo "core/ not built yet (P4)"
-fi
+# --- Kotlin safety core: build and unit/scenario tests (gate G1) ----------
+sh ./gradlew -p core --no-daemon -q test
+echo "core tests passed"
+
+# --- Regression gate G6: this design vs R5 on the repo's own scene set ----
+# Exports the identical seed-53 scenes (the export re-checks R5), scores the core on them, and fails if
+# the like-for-like setting no longer beats R5 on both misses and false alarms. Outputs stay in build/.
+mkdir -p core/build/eval
+( cd "$TMP" && MPLBACKEND=Agg "$ROOT/.venv/bin/python" "$ROOT/paper/simulation/export_scenes.py" "$ROOT/core/build/eval/scenes.csv" )
+sh ./gradlew -p core --no-daemon -q runBaselineEval -Pargs="core/build/eval/scenes.csv core/build/eval" >/dev/null
+"$ROOT/.venv/bin/python" - core/build/eval/g6_baseline_comparison.json <<'PY'
+import json, sys
+m = next(r for r in json.load(open(sys.argv[1])) if r["setting"] == "matched")
+assert m["miss_pct"] < 47.39 and m["fa_pct"] <= 2.00, m
+print(f"G6 matched setting: false alarms {m['fa_pct']:.2f}% (R5 2.00), misses {m['miss_pct']:.2f}% (R5 47.39)  [L1]")
+PY
 echo "init.sh: OK"

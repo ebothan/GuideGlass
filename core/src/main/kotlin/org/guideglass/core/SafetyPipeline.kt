@@ -47,7 +47,7 @@ class SafetyPipeline(
         tracker.update(f, walkSpeedMS)
         f.stamps.trackDone = now
         val cues = if (health.hazardCuesAllowed) {
-            assessor.decide(tracker.alertable(now), f.stamps.capture, now, walkSpeedMS, f.headToTravelRad, health.motionChannelAllowed, tracker.lastFastYawT)
+            assessor.decide(tracker.alertable(f.stamps.capture), f.stamps.capture, now, walkSpeedMS, f.headToTravelRad, health.motionChannelAllowed, tracker.lastFastYawT)
         } else emptyList()
         f.stamps.decision = now
         if (cues.isNotEmpty()) {

@@ -1,0 +1,109 @@
+{
+ "_note": "SYNTHETIC route in Google Directions API response format, generated for tests. Not real map data.",
+ "status": "OK",
+ "routes": [
+  {
+   "summary": "Synthetic test route",
+   "legs": [
+    {
+     "steps": [
+      {
+       "html_instructions": "Head <b>north</b> on Example Ave",
+       "distance": {
+        "value": 120
+       },
+       "duration": {
+        "value": 92
+       },
+       "start_location": {
+        "lat": 47.6,
+        "lng": -122.33
+       },
+       "end_location": {
+        "lat": 47.601079185927105,
+        "lng": -122.33
+       },
+       "polyline": {
+        "points": "_{oaHnqsiVkB?kB?"
+       },
+       "travel_mode": "WALKING"
+      },
+      {
+       "html_instructions": "Turn <b>right</b> onto First St",
+       "distance": {
+        "value": 80
+       },
+       "duration": {
+        "value": 62
+       },
+       "start_location": {
+        "lat": 47.601079185927105,
+        "lng": -122.33
+       },
+       "end_location": {
+        "lat": 47.601079185927105,
+        "lng": -122.32893303464739
+       },
+       "polyline": {
+        "points": "wapaHnqsiV?iB?kB"
+       },
+       "travel_mode": "WALKING",
+       "maneuver": "turn-right"
+      },
+      {
+       "html_instructions": "Cross Second St at the crosswalk",
+       "distance": {
+        "value": 30
+       },
+       "duration": {
+        "value": 23
+       },
+       "start_location": {
+        "lat": 47.601079185927105,
+        "lng": -122.32893303464739
+       },
+       "end_location": {
+        "lat": 47.601079185927105,
+        "lng": -122.32853292264016
+       },
+       "polyline": {
+        "points": "wapaHxjsiV?g@?g@"
+       },
+       "travel_mode": "WALKING"
+      },
+      {
+       "html_instructions": "Turn <b>left</b> onto Third Ave",
+       "distance": {
+        "value": 100
+       },
+       "duration": {
+        "value": 77
+       },
+       "start_location": {
+        "lat": 47.601079185927105,
+        "lng": -122.32853292264016
+       },
+       "end_location": {
+        "lat": 47.601978507533026,
+        "lng": -122.32853292264016
+       },
+       "polyline": {
+        "points": "wapaHhhsiVyA?yA?"
+       },
+       "travel_mode": "WALKING",
+       "maneuver": "turn-left"
+      }
+     ],
+     "start_location": {
+      "lat": 47.6,
+      "lng": -122.33
+     },
+     "end_location": {
+      "lat": 47.601978507533026,
+      "lng": -122.32853292264016
+     }
+    }
+   ]
+  }
+ ]
+}

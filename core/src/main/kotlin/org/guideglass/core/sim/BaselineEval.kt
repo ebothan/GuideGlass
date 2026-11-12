@@ -110,7 +110,7 @@ object BaselineEvaluator {
             val f = FrameInput(r.k.toLong(), StageStamps(t, t, t), listOfNotNull(det), r.k.toLong())
             tracker.update(f, 1.4)
             val now = t + delay
-            assessor.decide(tracker.alertable(now), t, now, 1.4, 0.0, motionChannel = true)
+            assessor.decide(tracker.alertable(t), t, now, 1.4, 0.0, motionChannel = true)
             level = assessor.lastAssessments.maxOfOrNull { it.level } ?: AlertLevel.NONE
         }
         return level >= s.minLevel

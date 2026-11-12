@@ -106,7 +106,8 @@ data class CoreConfig(
     val pessimismK: Double = 1.0,
     // Track life in seconds (REQ-05, ADR 0004).
     val confirmAfterS: Double = 0.2,
-    val coastS: Double = 0.6,
+    /** Alerts may use a coasted (unseen) track for this long; 0.3 s, not 0.6 s: see ADR 0006. */
+    val coastS: Double = 0.3,
     val deleteAfterS: Double = 1.0,
     val historyS: Double = 1.0,
     val motionWindowS: Double = 0.5,
