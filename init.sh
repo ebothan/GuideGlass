@@ -31,7 +31,7 @@ PY
 
 # --- Kotlin safety core (added in P4) -------------------------------------
 if [ -f core/settings.gradle.kts ]; then
-  ./gradlew -p core --no-daemon -q test
+  sh ./gradlew -p core --no-daemon -q test
   echo "core tests passed"
 else
   echo "core/ not built yet (P4)"
