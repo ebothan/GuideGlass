@@ -4,48 +4,48 @@
   "gates": {
     "G1": {
       "title": "Clean checkout builds and passes unit tests via init.sh",
-      "status": "pending",
-      "evidence": "init.sh exists and reproduces the R5 baseline; Kotlin core not yet written"
+      "status": "pass",
+      "evidence": "init.sh on a clean clone of av-prototype: R5 baseline, 74 core tests, G6 regression; 38 s (2026-11-12)"
     },
     "G2": {
       "title": "App runs end to end in emulator on replayed and synthetic scenes; cues produced, spoken, logged",
       "status": "blocked",
-      "evidence": "User declined Android SDK/emulator install on 2026-11-11 (ADR 0003). Gate unchanged, not passed; see G2a"
+      "evidence": "Android SDK/emulator not installed by user decision (ADR 0003); Android adapters not yet written. See G2a"
     },
     "G2a": {
       "title": "Full pipeline runs end to end on the desktop JVM with a mock frame source on synthetic scenes and replayed logs; cues produced, rendered by a logging audio sink, logged (ADR 0003; evidence labelled L3-substitute)",
-      "status": "pending",
-      "evidence": ""
+      "status": "pass",
+      "evidence": "docs/results/demo_cue_log.md: 7 scenarios + navigation end to end on JVM, logging audio sink; saved event logs replay identically (ReplayTest). L3-substitute"
     },
     "G3": {
       "title": "Per-stage timestamps; latency report p50/p95/p99 vs budget, pass/fail per cue type",
-      "status": "pending",
-      "evidence": ""
+      "status": "pass",
+      "evidence": "docs/results/latency_report.md: p50/p95/p99 per stage and per cue type; STOP 613 ms p95 pass, CAUTION/MOVING fail (queue wait); hardware stages drawn [A], core compute measured on desktop"
     },
     "G4": {
       "title": "Safety path survives loss of network, camera, Bluetooth, slow cloud; distinct degraded cue within stated time",
-      "status": "pending",
-      "evidence": ""
+      "status": "pass",
+      "evidence": "HealthTest (12): camera/frozen/stall loss cue <=0.6 s start, ear p95 877 ms; BT loss on phone <=1 s; reduced fps, latency, network, low light. L1; real audio timing needs_hardware"
     },
     "G5": {
       "title": "Navigation on replayed GPS trace A to B with Maps (or recorded responses); predicted-time turn rule",
-      "status": "pending",
-      "evidence": ""
+      "status": "pass",
+      "evidence": "NavigatorTest (8): synthetic Directions-format response (no key), replayed 1 Hz GPS with 4 m noise; predicted-time turn cues fire before turn in 20/20, 1.1-7.7 s early. Live API path unverified"
     },
     "G6": {
       "title": "Hazard evaluation on scene set shared with baseline; miss and false-alarm rates vs R5 (2.0% FA, 47.4% miss)",
-      "status": "pending",
-      "evidence": "Baseline reproduced at L1 by init.sh: R5 2.00% FA, 47.39% miss"
+      "status": "pass",
+      "evidence": "docs/results/g6_baseline_comparison.md: same seed-53 scenes; like-for-like 1.30% FA / 11.33% miss vs R5 2.00/47.39 (L1); worst error sweep 2.86% FA / 18.5% miss; init.sh regression"
     },
     "G7": {
       "title": "Cloud tier off the critical path; hallucination guard tested",
-      "status": "pending",
-      "evidence": ""
+      "status": "pass",
+      "evidence": "CloudGuardTest (21): T1-T20 from research 07 plus slow-cloud isolation from the safety path"
     },
     "G8": {
       "title": "Cue priority, arbitration, repetition control tested incl. stop/back off/approach again",
-      "status": "pending",
-      "evidence": ""
+      "status": "pass",
+      "evidence": "ArbiterTest (5), ScenarioTest: S-07 exactly 2 STOPs 30/30, S-08 exactly 1, S-19 refractory and no overlap"
     },
     "G9": {
       "title": "Safety case, ADRs, research notes, hardware checklist committed; adversarial review done",
@@ -55,7 +55,7 @@
     "G10": {
       "title": "All work pushed to av-prototype",
       "status": "pending",
-      "evidence": "Branch exists on ebothan/GuideGlass"
+      "evidence": "P0-P4 pushed to ebothan/GuideGlass av-prototype (592661c and later)"
     }
   }
 }
