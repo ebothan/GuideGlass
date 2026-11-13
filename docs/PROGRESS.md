@@ -128,9 +128,11 @@ Decisions:
 - Gates: G3 moved to `needs_hardware`. Requirements 02, 07, 08 are "not met" (`docs/results/requirements_status.md`).
 - Test changes this round, all logged in `docs/review/response.md`: 30-seed false-STOP gates replaced by 100-seed rate bounds; cloud tests T4 and T7 follow the new guard rules; the simulated walker gained 0.15 s recognition time.
 
-## Next
-1. **P6:**
-   - Final report.
-   - Hardware-validation checklist (H-1 to H-n): Android adapters against DAT 1.0.1, real latency, pitch and range error, clock offset.
-   - Set G9 and G10.
-2. Open design problem: false-STOP rate (safety case C4).
+## 2026-11-12: P6 Finish (done)
+- `docs/hardware-validation-checklist.md` and `docs/FINAL_REPORT.md` written. G9 and G10 set to pass.
+- Final gate state: G1, G2a, G4, G5, G6, G7, G8, G9, G10 pass on simulation, desktop or documentary evidence; G2 blocked (no Android SDK, adapters not written); G3 needs hardware.
+
+## Next (for whoever continues)
+1. Install the Android SDK; write the adapters; run the checklist (`docs/hardware-validation-checklist.md`).
+2. Replay real footage through a real detector, depth model and pitch estimator; measure false alarms per walking hour.
+3. Open design problem: false-STOP rate (safety case C4).

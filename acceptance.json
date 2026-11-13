@@ -49,13 +49,13 @@
     },
     "G9": {
       "title": "Safety case, ADRs, research notes, hardware checklist committed; adversarial review done",
-      "status": "pending",
-      "evidence": "Safety case v2, ADRs 0001-0007, research notes, adversarial review and response committed. Hardware checklist and final report are P6"
+      "status": "pass",
+      "evidence": "docs/safety-case.md v2, docs/adr/0001-0007, docs/research/01-08 + hypotheses, docs/hardware-validation-checklist.md, docs/FINAL_REPORT.md; adversarial review (docs/review/) done, 4 critical + 7 high findings fixed or listed with residuals"
     },
     "G10": {
       "title": "All work pushed to av-prototype",
-      "status": "pending",
-      "evidence": "P0-P5 pushed to ebothan/GuideGlass av-prototype"
+      "status": "pass",
+      "evidence": "All work pushed to ebothan/GuideGlass branch av-prototype; nothing pushed to main or upstream"
     }
   }
 }
